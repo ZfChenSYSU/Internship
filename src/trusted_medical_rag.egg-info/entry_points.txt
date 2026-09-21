@@ -1,0 +1,2 @@
+[console_scripts]
+medical-rag = medical_rag.cli:main

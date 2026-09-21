@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trusted-medical-rag"
+version = "0.1.0"
+description = "Source-aware corpus preparation and retrieval indexes for a trusted Chinese medical RAG system."
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dense = [
+  "numpy>=1.24",
+  "qdrant-client>=1.9",
+  "sentence-transformers>=3.0",
+  "torch>=2.2",
+]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+medical-rag = "medical_rag.cli:main"
+medical-rag-web = "medical_rag.webapp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

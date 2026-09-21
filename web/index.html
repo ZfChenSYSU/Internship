@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Medical RAG</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell" id="shell">
+      <section class="hero" id="hero" aria-labelledby="hero-title">
+        <div class="headline">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path d="M8 26c4-10 12-15 23-13-1 4 0 7 4 9 3 2 6 1 8-1-1 8-7 15-16 17-9 2-17-3-19-12Z" />
+              <path d="M15 25c4 0 7 2 9 6M30 13c2-4 5-6 9-6-1 5-3 8-7 10" />
+              <circle cx="31" cy="23" r="1.7" />
+            </svg>
+          </span>
+          <h1 id="hero-title">今天想了解什么？</h1>
+        </div>
+      </section>
+
+      <section class="conversation" id="conversation" aria-live="polite" hidden>
+        <div class="question-row">
+          <div class="question" id="questionText"></div>
+        </div>
+
+        <article class="response-card">
+          <div class="assistant-label">
+            <span class="mini-mark" aria-hidden="true">✦</span>
+            <span>Medical RAG</span>
+          </div>
+
+          <details class="reasoning-panel" id="reasoningPanel" hidden>
+            <summary>
+              <span class="thinking-dot"></span>
+              <span>思考过程</span>
+            </summary>
+            <div class="reasoning-content" id="reasoningText"></div>
+          </details>
+
+          <div class="status" id="status">
+            <span class="loader" aria-hidden="true"></span>
+            <span id="statusText">准备中…</span>
+          </div>
+          <div class="answer" id="answerText"></div>
+          <div class="metrics" id="metrics" hidden></div>
+
+          <section class="sources" id="sources" hidden>
+            <button class="sources-heading" id="sourcesToggle" type="button" aria-expanded="false">
+              <span>参考证据</span>
+              <span class="source-count" id="sourceCount"></span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4" /></svg>
+            </button>
+            <div class="source-list" id="sourceList" hidden></div>
+          </section>
+        </article>
+      </section>
+
+      <section class="composer-wrap" id="composerWrap">
+        <form class="composer" id="chatForm">
+          <label class="sr-only" for="messageInput">输入医疗问题</label>
+          <textarea id="messageInput" rows="2" maxlength="4000" placeholder="向 Medical RAG 提问" autofocus></textarea>
+          <div class="composer-actions">
+            <button class="reasoning-toggle" id="reasoningToggle" type="button" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2c3 0 5 4.5 5 10s-2 10-5 10-5-4.5-5-10 2-10 5-10Z" />
+                <path d="M3.3 7c1.5-2.6 6.4-2 11.2.8s7.7 6.8 6.2 9.4-6.4 2-11.2-.8S1.8 9.6 3.3 7Z" />
+              </svg>
+              <span>深度思考</span>
+            </button>
+            <span class="model-label">deepseek-flash</span>
+            <button class="send-button" id="sendButton" type="submit" aria-label="发送" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" /></svg>
+            </button>
+          </div>
+        </form>
+        <p class="notice">内容仅用于课程研究演示，不构成医疗建议</p>
+      </section>
+    </main>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

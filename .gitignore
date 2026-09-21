@@ -14,6 +14,7 @@ logs/
 *.sqlite
 *.db
 .env
+deepseek_apikey.txt
 .venv/
 __pycache__/
 

@@ -1,83 +1,360 @@
-# 可信医疗 RAG 智能问答系统
+# Trusted Medical RAG · 可信医疗 RAG
 
-本仓库记录“题目二：可信医疗 RAG 智能问答系统”的课程项目方案、技术路线与相关演示材料。项目面向中文医疗知识问答，目标是构建一个**有证据可追溯、引用可核验、证据不足时主动拒答**的 RAG（检索增强生成）系统。
+一个面向中文医疗资料的本地 RAG（Retrieval-Augmented Generation）演示系统。项目将
+SQLite FTS5-BM25、BGE-M3、RRF、BGE reranker 和父子节点上下文补全组合起来，再由
+DeepSeek 根据检索证据生成带引用的自然语言回答。
 
-> 本项目仅用于课程研究与工程验证，不用于真实临床诊断、治疗或替代专业医疗建议。
+> [!WARNING]
+> 本项目仅用于课程研究与工程验证，不提供诊断、治疗或用药建议，不能替代医生。请勿上传、
+> 索引或发送任何未经授权的患者隐私数据。
 
-## 项目目标
+## 当前能做什么
 
-- 从权威中文医疗资料中进行关键词与语义混合检索；
-- 通过重排和分层父子节点检索补全上下文；
-- 仅依据检索到的证据生成回答，并给出可定位的引用；
-- 在证据缺失、条件不足或来源冲突时进行部分或完整拒答；
-- 通过消融实验评估检索、引用核验与拒答模块的贡献。
+- 对中文指南、专家共识和教材执行来源感知的父子分片；
+- BM25 与 BGE-M3 并行召回，使用 RRF 融合结果；
+- 使用 `BAAI/bge-reranker-v2-m3` 重排候选段落；
+- 合并同一父节点的相邻子片段，在上下文预算内补全限定条件；
+- 通过 `deepseek-flash` 流式生成带 `[S1]` 引用的中文回答；
+- 在本地 DeepSeek 风格页面中切换 Reasoning 模式并展开原始证据；
+- 审计 BM25/Qdrant 的 ID、payload、权威等级和向量维度一致性。
 
-## 方案概览
+尚未完成的部分包括自动陈述级引用核验、经验证集校准的拒答策略、上传文档、多轮对话、
+Qdrant Server 部署和完整 E0–E7 评测。详情见[开发状态与内部记录](docs/DEVELOPMENT_STATUS.md)。
 
-系统计划采用 A+B 组合路线：
-
-1. **路线 A：混合检索与可信回答**
-   - BM25 等关键词检索与 BGE-M3 稠密检索并行召回；
-   - 使用 RRF 融合结果，并由 BGE reranker 重排；
-   - 基于 Qwen 生成带来源、原文片段和链接的回答。
-2. **路线 B：分层文档检索与引用核验**
-   - 保留“文档—章节—小节—段落/表格”的层级；
-   - 以子片段精确检索，并补充父章节的适用条件与上下文；
-   - 对关键医学陈述进行引用支持度核验，必要时修正或拒答。
+## 系统流程
 
 ```text
-医疗文档 → 解析、清洗、分层切分 → 关键词索引 + 向量索引
+离线
+授权医疗资料
+  → 清洗与层级解析
+  → 文档 / 父节点 / 子片段
+  → SQLite FTS5-BM25 + BGE-M3/Qdrant
 
-用户问题 → 混合检索 → 融合与重排 → 父节点上下文补充
-        → 证据充分性检查 → 基于证据生成 → 陈述级引用核验
-        → 带引用回答 / 拒答
+在线
+用户问题
+  → BM25 Top-30 + Dense Top-30
+  → RRF(k=60) Top-40
+  → BGE reranker Top-12
+  → 父节点聚类、相邻补全、上下文预算
+  → DeepSeek Flash（Reasoning 可选）
+  → 自然语言回答 + [S1] 引用 + 可展开证据
 ```
 
-## 仓库内容
+## 运行环境
 
-| 路径 | 说明 |
-| --- | --- |
-| `题目2_A+B简要方案.md` | A+B 路线的简明项目方案、目标、模块与周期规划。 |
-| `题目2_A+B技术路线与实施计划.md` | 完整技术架构、数据规范、索引方案、实验矩阵与 12 周实施计划。 |
-| `初步方案.md` | 多条候选技术路线的前期调研与选择建议。 |
-| `生产实习_医学方向题目汇总.pptx` | 医学方向生产实习题目汇总演示文稿。 |
-| `生产实习_医学方向题目汇总/` | 上述演示文稿导出的页面图片，便于快速预览。 |
+推荐配置：
 
-## 预期技术栈
+- macOS 13+、Apple Silicon、16 GB 以上统一内存，24 GB 更适合完整索引；
+- Python 3.11 或 3.12；项目当前也在 Python 3.9.6 上通过测试；
+- 约 8–12 GB 可用磁盘空间，用于模型、Qdrant、SQLite 和处理结果；
+- 可访问 Hugging Face 与 DeepSeek API 的网络；
+- 一个可用的 DeepSeek API key。
 
-- **后端与演示：** FastAPI、Streamlit、Docker Compose；
-- **检索：** BM25、BGE-M3、RRF、BGE reranker；
-- **生成：** Qwen API，本地开源 Qwen 作为备用；
-- **存储与索引：** 关键词索引、向量索引及可追溯的文档层级元数据。
+CPU 可以运行，但嵌入、重排和首次响应会明显更慢。当前命令行只正式验证了 Apple MPS 与
+CPU；NVIDIA CUDA 尚未完成项目级验收。
 
-详细的组件选型、配置建议与接口设计见[技术路线与实施计划](./题目2_A+B技术路线与实施计划.md)。
+## 快速开始
 
-## 数据与隐私
+### 1. 获取代码
 
-本地 `Medical Corpus/` 为原始医学语料，包含临床指南、专家共识、电子病历、百科和其他资料，体积约 **1.1 GB**。该目录已被 `.gitignore` 排除，**不会上传至 Git 仓库**。
+```bash
+git clone <YOUR_REPOSITORY_URL>
+cd <YOUR_REPOSITORY_DIRECTORY>
+```
 
-后续使用数据时应：
+### 2. 创建 Python 环境
 
-- 优先选取来源、版本和授权可追溯的公开资料；
-- 不将评测集的题目、答案或解析混入检索语料，以避免数据泄漏；
-- 对电子病历或其他可能含敏感信息的材料，先完成脱敏、授权和合规审查；
-- 在仓库中只保留必要的说明、元数据模板或小型可公开示例。
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -e '.[dense,dev]'
+```
 
-## 评测计划
+安装内容包括 PyTorch、Sentence Transformers、Qdrant Client、NumPy 和 pytest。Web 演示后端
+使用 Python 标准库，不需要 Node.js、FastAPI 或 Streamlit。
 
-项目将比较从无 RAG 基线到“混合检索 + 重排 + 分层检索 + 引用核验 + 拒答”的多组设置，重点评估：
+### 3. 下载开源模型
 
-- 问答准确率、Recall@K、MRR；
-- 关键陈述的引用正确率与引用覆盖率；
-- 拒答准确率、拒答召回率与误拒率；
-- 响应时间、显存占用与 API 成本。
+本项目使用以下 Hugging Face 模型：
 
-## 进度
+| 用途 | 模型 | Hugging Face |
+|---|---|---|
+| 稠密检索 | `BAAI/bge-m3` | [模型主页](https://huggingface.co/BAAI/bge-m3) |
+| 交叉编码重排 | `BAAI/bge-reranker-v2-m3` | [模型主页](https://huggingface.co/BAAI/bge-reranker-v2-m3) |
 
-当前仓库处于项目方案与实施设计阶段；应用代码、数据处理脚本、索引与评测结果将在后续开发中逐步补充。
+模型默认从项目内的 `models/huggingface/` 读取。下面的命令排除了当前 PyTorch/MPS 流程不需要
+的 ONNX 和演示图片文件：
 
-## 相关文档
+```bash
+.venv/bin/hf download BAAI/bge-m3 \
+  --cache-dir models/huggingface \
+  --exclude 'onnx/*' 'imgs/*' '*.jpg' '*.webp'
 
-- [A+B 简要方案](./题目2_A+B简要方案.md)
-- [A+B 技术路线与实施计划](./题目2_A+B技术路线与实施计划.md)
-- [初步方案](./初步方案.md)
+.venv/bin/hf download BAAI/bge-reranker-v2-m3 \
+  --cache-dir models/huggingface \
+  --exclude 'assets/*'
+```
+
+如果没有 `.venv/bin/hf`，先运行：
+
+```bash
+python -m pip install --upgrade huggingface_hub
+```
+
+模型目录约占数 GB，已被 `.gitignore` 排除，不要提交模型权重。
+
+### 4. 准备 DeepSeek API key
+
+在项目根目录创建 `deepseek_apikey.txt`，文件中只放一行 API key：
+
+```text
+sk-your-deepseek-api-key
+```
+
+然后限制本机读取权限：
+
+```bash
+chmod 600 deepseek_apikey.txt
+```
+
+该文件已被 `.gitignore` 排除。后端只在本地读取 key，不会把 key 发送到浏览器。当前 Web
+配置使用：
+
+| 参数 | 值 |
+|---|---|
+| Model | `deepseek-flash` |
+| Temperature | `0` |
+| Max output tokens | `10000` |
+| Thinking | 页面开关控制 `thinking.type=enabled/disabled` |
+| Streaming | 开启 |
+
+DeepSeek 接口参数可参考[官方 Chat Completion 文档](https://api-docs.deepseek.com/api/create-chat-completion)。
+
+### 5. 获取语料和预构建索引
+
+原始医疗语料、处理结果和索引体积较大，并可能受来源授权限制，因此不直接提交到 Git。
+项目维护者将通过百度网盘提供可分发的整理包：
+
+```text
+百度网盘链接：<发布前填写>
+提取码：<发布前填写>
+文件版本：corpus_v1
+```
+
+下载后解压到项目根目录，至少应得到：
+
+```text
+Medical Corpus/                         # 仅在需要重建时使用
+data/
+├── manifests/
+│   ├── corpus_scope.json
+│   └── corpus_v1.jsonl
+├── processed/corpus_v1/
+│   ├── documents.jsonl
+│   ├── parents.jsonl
+│   ├── chunks.jsonl
+│   └── quality_report.json
+└── indexes/corpus_v1/
+    ├── bm25.sqlite3
+    └── qdrant/
+```
+
+如果只想运行 Web 演示，可以不保留 `Medical Corpus/`，但必须保留 `data/indexes/`。如果需要
+复核原文偏移或从零重建，则必须准备有合法使用权的原始语料。
+
+> [!IMPORTANT]
+> 发布百度网盘前，请确认其中不包含无权再分发的教材、指南、个人信息、API key、模型权重或
+> 其他受限内容，并同时公布文件哈希、数据版本和许可说明。
+
+### 6. 验证模型与索引
+
+检查当前进程是否能使用 Apple MPS：
+
+```bash
+.venv/bin/python scripts/corpus_pipeline.py doctor
+```
+
+检查 BM25 和 Qdrant 是否完全一致：
+
+```bash
+.venv/bin/python scripts/audit_indexes.py
+```
+
+`corpus_v1` 的参考结果为：
+
+```text
+expected_eligible_chunks = 46516
+qdrant_points = 46516
+missing = extra = bad_payload = bad_point_ids = 0
+vector_dimension = 1024
+passed = true
+```
+
+不同语料版本的数量可以不同，但 `missing`、`extra`、`bad_payload` 和 `bad_point_ids` 应为 0。
+
+### 7. 启动本地 Web 演示
+
+macOS + MPS：
+
+```bash
+scripts/run_local_web.command
+```
+
+脚本会运行 MPS 诊断、加载检索模型、启动服务并打开：
+
+```text
+http://127.0.0.1:8000
+```
+
+手动启动或使用 CPU：
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 \
+.venv/bin/python -m medical_rag.webapp.server \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --device auto \
+  --model deepseek-flash \
+  --max-tokens 10000 \
+  --api-key-file deepseek_apikey.txt \
+  --open-browser
+```
+
+按 `Ctrl+C` 停止服务。服务默认只监听 `127.0.0.1`，不要在没有鉴权、TLS 和访问控制的情况下
+将它绑定到公网地址。
+
+## 从零构建数据和索引
+
+如果不使用百度网盘中的预构建资产，请先按照以下目录放置有授权的 UTF-8/TXT 语料：
+
+```text
+Medical Corpus/
+├── Clinical Guidance/
+├── Expert Consensus/
+└── Textbook/
+```
+
+首版策略只纳入上述 A/B 级来源；`Web Article`、`Wiki` 和 `EMR` 默认排除。
+
+### 生成 manifest、父节点和子片段
+
+```bash
+.venv/bin/python scripts/corpus_pipeline.py prepare \
+  --corpus-root 'Medical Corpus' \
+  --data-root data
+```
+
+### 构建 SQLite FTS5-BM25
+
+```bash
+.venv/bin/python scripts/corpus_pipeline.py bm25
+```
+
+### 构建或断点续建 BGE-M3/Qdrant
+
+MPS：
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 \
+.venv/bin/python scripts/corpus_pipeline.py dense \
+  --device mps \
+  --batch-size 8 \
+  --precision fp32
+```
+
+CPU：
+
+```bash
+.venv/bin/python scripts/corpus_pipeline.py dense \
+  --device cpu \
+  --batch-size 4 \
+  --precision fp32
+```
+
+稠密索引使用确定性 point ID，重复执行会跳过已经成功写入的子片段。
+
+### 检索冒烟测试
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 \
+.venv/bin/python scripts/corpus_pipeline.py retrieve \
+  '颅脑创伤后脑积水如何诊断？' \
+  --device auto
+```
+
+也可以在不加载稠密模型和 reranker 的情况下验证降级链路：
+
+```bash
+.venv/bin/python scripts/corpus_pipeline.py retrieve \
+  '颅脑创伤后脑积水如何诊断？' \
+  --no-dense \
+  --no-reranker
+```
+
+## 测试
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+当前仓库有 10 项单元测试，覆盖分片偏移、BM25 过滤、RRF、模型缓存解析、reranker 封装、
+父节点补全和完整混合检索编排。
+
+## 目录结构
+
+```text
+.
+├── configs/base.yaml                 # 分片、索引、融合、重排和层级参数
+├── docs/                             # 数据卡、交接说明和开发记录
+├── scripts/
+│   ├── corpus_pipeline.py            # prepare/bm25/dense/retrieve/doctor
+│   ├── audit_indexes.py              # 双索引一致性审计
+│   └── run_local_web.command         # macOS 本地 Web 启动入口
+├── src/medical_rag/
+│   ├── ingestion/                    # manifest 与范围策略
+│   ├── chunking/                     # 来源感知层级分片
+│   ├── indexing/                     # BM25 与 Qdrant 索引
+│   ├── retrieval/                    # Dense、RRF、父节点补全和编排
+│   ├── reranking/                    # BGE reranker
+│   └── webapp/                       # 本地 DeepSeek Web 后端
+├── tests/
+└── web/                              # HTML、CSS、JavaScript
+```
+
+## 数据、安全与隐私
+
+- `Medical Corpus/`、`data/`、`models/`、`logs/` 和 `deepseek_apikey.txt` 默认不进入 Git；
+- 只索引来源、版本、授权和权威等级可追溯的资料；
+- 禁止把公开评测题的答案或解析混入检索语料；
+- 电子病历默认排除，任何患者数据都必须先完成授权、脱敏和合规审查；
+- Web 提问及检索证据会发送到 DeepSeek API，请先确认资料允许发送给第三方模型服务；
+- 本地 Web 服务目前没有用户认证，不应直接暴露到局域网或公网。
+
+## 已知限制
+
+- 当前拒答主要依赖生成提示，还没有完成经验证集校准的多信号拒答策略；
+- 尚未自动验证每个生成 claim 是否被其引用证据支持；
+- Qdrant 使用 local mode，46,516 点会出现规模提示，且不适合多进程同时打开；
+- 当前父节点与 Top-K 参数是工程起始值，尚未完成正式开发集调优；
+- 部分语料缺少出版日期、版本、机构和 URL，需要进一步人工核验；
+- 当前 Web 演示是单轮、单机、单用户原型，没有上传、会话隔离和持久聊天记录。
+
+## 文档
+
+- [开发状态与内部记录](docs/DEVELOPMENT_STATUS.md)
+- [corpus_v1 数据卡](docs/data_card.md)
+- [索引交接说明](docs/index_handoff.md)
+- [RRF、BGE 重排与父节点补全](docs/retrieval_pipeline.md)
+- [本地 DeepSeek Web 演示](docs/local_web_demo.md)
+- [完整技术路线与实施计划](Medical_RAG_A+B_Technical_Roadmap_and_Implementation_Plan.md)
+
+## 贡献
+
+欢迎提交 Issue 或 Pull Request。与医学语料、评测答案和患者数据有关的贡献，请先确认版权、
+授权和隐私边界；不要把大模型权重、原始受限语料、构建索引或 API key 提交到仓库。
+
+## License
+
+仓库目前尚未添加开源许可证。正式公开前，请由维护者选择并加入 `LICENSE`（例如 MIT、
+Apache-2.0 或其他符合课程、数据与依赖约束的许可证）。在许可证确定前，默认版权法仍然适用。

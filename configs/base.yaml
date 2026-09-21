@@ -1,0 +1,57 @@
+corpus:
+  root: Medical Corpus
+  included_sources:
+    - Clinical Guidance
+    - Expert Consensus
+    - Textbook
+  excluded_sources:
+    - EMR
+    - Web Article
+    - Wiki
+
+chunking:
+  child_target_chars: 500
+  child_max_chars: 800
+  child_overlap_chars: 80
+  parent_target_chars: 1600
+  parser_version: source_parser_v1
+  index_version: corpus_v1
+
+bm25:
+  backend: sqlite_fts5
+  tokenizer: trigram
+  index_path: data/indexes/corpus_v1/bm25.sqlite3
+
+dense:
+  model: BAAI/bge-m3
+  device: auto
+  batch_size: 8
+  max_length: 512
+  precision: fp32
+  normalize_embeddings: true
+  qdrant_path: data/indexes/corpus_v1/qdrant
+  collection: corpus_v1_children
+
+retrieval:
+  bm25_top_k: 30
+  dense_top_k: 30
+  fusion: rrf
+  rrf_k: 60
+  fused_top_k: 40
+  duplicate_cluster_limit: 2
+
+reranking:
+  model: BAAI/bge-reranker-v2-m3
+  device: auto
+  batch_size: 4
+  max_length: 512
+  final_top_k: 12
+
+hierarchy:
+  neighbour_children: 1
+  max_windows_per_parent: 2
+  max_windows_per_document: 3
+  final_windows: 8
+  context_budget_chars: 12000
+  min_window_chars: 240
+  max_full_parent_chars: 2200
