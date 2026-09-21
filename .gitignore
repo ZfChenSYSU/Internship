@@ -1,0 +1,25 @@
+# macOS metadata
+.DS_Store
+
+# Large local medical corpora and sensitive source material
+Medical Corpus/
+
+# Future generated datasets, indexes, models, logs, and local configuration
+data/
+datasets/
+indexes/
+models/
+logs/
+*.faiss
+*.sqlite
+*.db
+.env
+.venv/
+__pycache__/
+
+# Common large model/checkpoint formats
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
