@@ -133,14 +133,10 @@ DeepSeek 接口参数可参考[官方 Chat Completion 文档](https://api-docs.d
 
 ### 5. 获取语料和预构建索引
 
-原始医疗语料、处理结果和索引体积较大，并可能受来源授权限制，因此不直接提交到 Git。
-项目维护者将通过百度网盘提供可分发的整理包：
+原始医疗语料、处理结果和索引体积较大，因此不直接提交到 Git。项目维护者通过百度网盘提供
+`corpus_v1` 整理包，压缩包内包含 `data/` 和 `Medical Corpus/` 两个文件夹：
 
-```text
-百度网盘链接：<发布前填写>
-提取码：<发布前填写>
-文件版本：corpus_v1
-```
+通过网盘分享的文件：source-data-processed-data.zip 链接: [https://pan.baidu.com/s/1mMEtNMcf8-vDq9qjivYojw?pwd=hyar](https://pan.baidu.com/s/1mMEtNMcf8-vDq9qjivYojw?pwd=hyar) 提取码: hyar
 
 下载后解压到项目根目录，至少应得到：
 

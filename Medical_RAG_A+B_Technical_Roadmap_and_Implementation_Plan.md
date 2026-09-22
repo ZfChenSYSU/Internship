@@ -81,19 +81,19 @@ Question → normalization / conversational rewrite
 
 ## 4. Recommended Stack and Initial Configuration
 
-| Area | Recommended choice | Rationale |
-|---|---|---|
-| Language | Python 3.11/3.12 | One language for backend, data pipeline, and evaluation |
-| Generation | Qwen API | Fast development without local LLM operations |
-| Embeddings | `BAAI/bge-m3` | Batched dense embeddings on MPS or CPU |
-| Reranking | `BAAI/bge-reranker-v2-m3` | Small-batch MPS/CPU inference |
-| Lexical retrieval | `bm25s` plus Chinese tokenization | Simple and reproducible at this corpus scale |
-| Vector store | Qdrant | Vectors, hierarchy, and provenance metadata |
-| Parsing | Docling/PyMuPDF, with manual correction as needed | PDF, table, and heading extraction |
-| Orchestration | Custom modules; LlamaIndex for reference only | Keeps core experiments transparent |
-| API / UI | FastAPI / Streamlit | Efficient for a course demonstration |
-| Experiment tracking | JSONL/CSV plus TensorBoard or MLflow | Fixed configs, results, and run records |
-| Deployment / tests | Docker Compose / pytest | Reproducible startup and regression coverage |
+| Area                | Recommended choice                                | Rationale                                               |
+| ------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| Language            | Python 3.11/3.12                                  | One language for backend, data pipeline, and evaluation |
+| Generation          | Qwen API                                          | Fast development without local LLM operations           |
+| Embeddings          | `BAAI/bge-m3`                                   | Batched dense embeddings on MPS or CPU                  |
+| Reranking           | `BAAI/bge-reranker-v2-m3`                       | Small-batch MPS/CPU inference                           |
+| Lexical retrieval   | `bm25s` plus Chinese tokenization               | Simple and reproducible at this corpus scale            |
+| Vector store        | Qdrant                                            | Vectors, hierarchy, and provenance metadata             |
+| Parsing             | Docling/PyMuPDF, with manual correction as needed | PDF, table, and heading extraction                      |
+| Orchestration       | Custom modules; LlamaIndex for reference only     | Keeps core experiments transparent                      |
+| API / UI            | FastAPI / Streamlit                               | Efficient for a course demonstration                    |
+| Experiment tracking | JSONL/CSV plus TensorBoard or MLflow              | Fixed configs, results, and run records                 |
+| Deployment / tests  | Docker Compose / pytest                           | Reproducible startup and regression coverage            |
 
 On the 24 GB Mac, parsing, chunking, BM25, RRF, Qdrant, API, and UI run locally. Generate only BGE-M3 dense vectors in the first version (not sparse or ColBERT vectors), starting with batch size 8. Rerank 30–40 candidates in small batches. Persist embeddings every 500–2,000 chunks and record completed `chunk_id`s so interrupted jobs resume safely. Index only A/B-tier core sources and 2–3 medical domains initially; do not embed the entire 530k+ web corpus. Record API model ID, date, temperature, prompt version, input/output tokens, and request ID; load keys only from environment variables. All Mac-produced manifests, chunks, and vectors must be portable to a later server run.
 
@@ -142,14 +142,14 @@ These are starting values only; select final settings on the validation set.
 
 The current Medical Corpus is a heterogeneous collection of plain text, not a unified library with complete publication metadata. Do not index it indiscriminately. First classify sources by authority and structural quality.
 
-| Directory | Observed structure and scale | First-version role | Indexing decision |
-|---|---|---|---|
-| `Clinical Guidance` | 34 large TXT files; some contain multiple chapters | A-tier core evidence | Recover chapters/sections; split logical documents where necessary |
-| `Expert Consensus` | 121 files, usually one consensus per file | A-tier core evidence | Hierarchical headings and recommendation items |
-| `Textbook` | 6,726 topic files; some `neikexue/text (n).txt` book volumes | B-tier supplementary evidence | Use book+filename as document identity; mark contents/index pages separately |
-| `Web Article` | 534,853 one-article files, often long single-line bodies | C-tier, not final evidence by default | Separate optional experimental index only |
-| `Wiki` | one ~438 MB file with non-medical entries | excluded initially | Reconstruct article boundaries and filter medical topics first |
-| `EMR` | 11,622 mixed task, note, and imaging-report files | excluded initially | Not normative evidence; requires separate privacy/governance review |
+| Directory             | Observed structure and scale                                  | First-version role                    | Indexing decision                                                            |
+| --------------------- | ------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------- |
+| `Clinical Guidance` | 34 large TXT files; some contain multiple chapters            | A-tier core evidence                  | Recover chapters/sections; split logical documents where necessary           |
+| `Expert Consensus`  | 121 files, usually one consensus per file                     | A-tier core evidence                  | Hierarchical headings and recommendation items                               |
+| `Textbook`          | 6,726 topic files; some`neikexue/text (n).txt` book volumes | B-tier supplementary evidence         | Use book+filename as document identity; mark contents/index pages separately |
+| `Web Article`       | 534,853 one-article files, often long single-line bodies      | C-tier, not final evidence by default | Separate optional experimental index only                                    |
+| `Wiki`              | one ~438 MB file with non-medical entries                     | excluded initially                    | Reconstruct article boundaries and filter medical topics first               |
+| `EMR`               | 11,622 mixed task, note, and imaging-report files             | excluded initially                    | Not normative evidence; requires separate privacy/governance review          |
 
 Select only 2–3 domains for version one (for example common chronic disease, antimicrobials and special-population medication, or common respiratory/cardiovascular disease). Never invent missing dates, versions, institutions, or URLs: store `null`/`unknown` until they are manually verified from reliable originals.
 
@@ -175,13 +175,13 @@ Child passages must be short enough to retrieve medicine names, doses, symptoms,
 - Store `raw_text` and retrieval-only `normalized_text`; displayed citations always come from `raw_text`.
 - Detect contents pages, author lists, and reference sections; exclude them from the evidence index by default.
 
-| Source | Document boundary | Parent node | Child atom | Fallback |
-|---|---|---|---|---|
-| Clinical guidance | one guideline/standard; multiple logical documents permitted | chapter/section | paragraph, numbered recommendation, complete list item | blank lines + sentence boundaries; mark low structural confidence |
-| Expert consensus | normally one TXT per consensus | numbered heading and subheading | discussion paragraph, diagnostic criterion, recommendation | paragraph-based parent candidates |
-| Textbook topic file | book directory + topic filename | internal subsection | logical definition/etiology/diagnosis/treatment paragraph | full topic file as parent, then length-limited splitting |
-| `neikexue` volumes | recover part/chapter before indexing | chapter/section | paragraph/list under subsection | leave out if chapter recovery fails |
-| Optional web article | file is article; first nonblank line is title candidate | article | reconstructed paragraph | discard short, repetitive, or advertising-like samples |
+| Source               | Document boundary                                            | Parent node                     | Child atom                                                 | Fallback                                                          |
+| -------------------- | ------------------------------------------------------------ | ------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| Clinical guidance    | one guideline/standard; multiple logical documents permitted | chapter/section                 | paragraph, numbered recommendation, complete list item     | blank lines + sentence boundaries; mark low structural confidence |
+| Expert consensus     | normally one TXT per consensus                               | numbered heading and subheading | discussion paragraph, diagnostic criterion, recommendation | paragraph-based parent candidates                                 |
+| Textbook topic file  | book directory + topic filename                              | internal subsection             | logical definition/etiology/diagnosis/treatment paragraph  | full topic file as parent, then length-limited splitting          |
+| `neikexue` volumes | recover part/chapter before indexing                         | chapter/section                 | paragraph/list under subsection                            | leave out if chapter recovery fails                               |
+| Optional web article | file is article; first nonblank line is title candidate      | article                         | reconstructed paragraph                                    | discard short, repetitive, or advertising-like samples            |
 
 ### 6.2 Chunk rules and traceability
 
@@ -280,27 +280,27 @@ Refusal uses multiple validation-calibrated signals: low reranker scores; diffus
 
 Keep the test set, Qwen model, core prompt, and output parser fixed across experiments.
 
-| ID | Setting | Purpose |
-|---|---|---|
-| E0 | Qwen, no RAG | generation baseline |
-| E1 | Dense RAG | dense retrieval baseline |
-| E2 | BM25 RAG | lexical retrieval baseline |
-| E3 | BM25 + dense + RRF | hybrid-retrieval contribution |
-| E4 | E3 + reranker | reranking contribution |
-| E5 | E4 + parent-child retrieval | hierarchical contribution |
+| ID | Setting                       | Purpose                           |
+| -- | ----------------------------- | --------------------------------- |
+| E0 | Qwen, no RAG                  | generation baseline               |
+| E1 | Dense RAG                     | dense retrieval baseline          |
+| E2 | BM25 RAG                      | lexical retrieval baseline        |
+| E3 | BM25 + dense + RRF            | hybrid-retrieval contribution     |
+| E4 | E3 + reranker                 | reranking contribution            |
+| E5 | E4 + parent-child retrieval   | hierarchical contribution         |
 | E6 | E5 + claim-level verification | citation-reliability contribution |
-| E7 | E6 + calibrated refusal | complete trustworthy system |
+| E7 | E6 + calibrated refusal       | complete trustworthy system       |
 
 Also ablate chunk size/overlap, Top-K, child-only versus parent context, fixed versus structure-aware chunks, verification on/off, and single-threshold versus multi-signal refusal.
 
-| Dimension | Metrics |
-|---|---|
-| QA | CMB/CMExam accuracy; open-question F1/manual correctness |
-| Retrieval | Recall@K, MRR, nDCG@10 |
-| Citations | citation precision/recall, claim coverage |
-| Refusal | precision, recall, F1, false-refusal rate |
-| Robustness | correct behavior on noisy evidence, false premises, missing conditions |
-| System | P50/P95 latency, failure rate, peak memory, MPS/CPU usage, API tokens/cost |
+| Dimension  | Metrics                                                                    |
+| ---------- | -------------------------------------------------------------------------- |
+| QA         | CMB/CMExam accuracy; open-question F1/manual correctness                   |
+| Retrieval  | Recall@K, MRR, nDCG@10                                                     |
+| Citations  | citation precision/recall, claim coverage                                  |
+| Refusal    | precision, recall, F1, false-refusal rate                                  |
+| Robustness | correct behavior on noisy evidence, false premises, missing conditions     |
+| System     | P50/P95 latency, failure rate, peak memory, MPS/CPU usage, API tokens/cost |
 
 Engineering targets—not claimed results—are Recall@10 ≥0.80, critical-claim citation coverage ≥0.95, manually audited citation support ≥0.85, unanswerable-set refusal F1 ≥0.75, no loss versus E0 in full-system accuracy, and reproducibility of E3–E7 with one script. Report negative results and error types transparently.
 
@@ -326,20 +326,20 @@ Do not commit restricted original data under `data/raw/`.
 
 ## 12. Twelve-Week Implementation Plan
 
-| Week | Main work | Milestone |
-|---|---|---|
-| 1 | Freeze 2–3 topics; establish source/licence/version rules, repository, config/logging, macOS PyTorch/MPS fallback, BGE/reranker/Qwen smoke tests; read MedRAG, BGE-M3, ClinicalRAG. | Dependencies run; scope and interfaces fixed. |
-| 2 | Freeze corpus inventory and hash manifest; sample parsers for guidance, consensus, textbook, and volumes; define A/B/C policy and node/citation schema; audit cleaning. | Structured, replayable samples; out-of-scope data cannot enter evidence store. |
-| 3 | Build fixed-length and structure-aware chunks with parent-child links; protect recommendations/doses/contraindications/negations; group duplicates; lock benchmark subset; annotate first 50–100 questions; implement E0. | `corpus_v1` frozen after audit; all chunks have parents and offsets. |
-| 4 | Build BM25 and BGE-M3/Qdrant; validate ID mapping, filters, context backfill, replay; implement E1/E2 and retrieval metrics. | Independent lexical and dense retrieval are evaluated. |
-| 5 | Implement deduplication/RRF and E3; tune validation Top-K/fusion; compare keyword/semantic queries and A vs A+B vs optional C retrieval. | Hybrid retrieval stable on validation. |
-| 6 | Add reranker, E4, fixed candidate/final K, complete retrieval traces, and failure analysis. | Track-A baseline complete. |
-| 7 | Add parent context, parent clustering, adjacent merge, document quotas/budget, E5; test tables, special populations, contraindications; compare quality/latency/cost. | Track-B hierarchy complete. |
-| 8 | Define answer schema, citation numbering/replay, API cache/retry/cost tracking, citation UI, and basic conversational rewriting. | Clickable evidence-backed answers work. |
-| 9 | Extract/verify claims, implement E6, construct unanswerable/leading validation set, calibrate refusal, implement E7. | Complete A+B route refuses insufficient-evidence questions. |
-| 10 | Build FastAPI, Streamlit, upload/parse/index/delete/namespace isolation, streaming/errors, and Docker Compose. | Full live demo is possible. |
-| 11 | Lock test/config/prompt versions; run E0–E7 and ablations; audit ≥100 answers/citations; profile latency, memory, MPS/CPU, token use, and cost. | Reproducible result and error-analysis tables. |
-| 12 | Clean repository; finalize README, deployment guide, data card, reports, demo script/cases; reproduce once on a clean machine. | Code, results, reports, and demo ready to submit. |
+| Week | Main work                                                                                                                                                                                                                  | Milestone                                                                      |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 1    | Freeze 2–3 topics; establish source/licence/version rules, repository, config/logging, macOS PyTorch/MPS fallback, BGE/reranker/Qwen smoke tests; read MedRAG, BGE-M3, ClinicalRAG.                                       | Dependencies run; scope and interfaces fixed.                                  |
+| 2    | Freeze corpus inventory and hash manifest; sample parsers for guidance, consensus, textbook, and volumes; define A/B/C policy and node/citation schema; audit cleaning.                                                    | Structured, replayable samples; out-of-scope data cannot enter evidence store. |
+| 3    | Build fixed-length and structure-aware chunks with parent-child links; protect recommendations/doses/contraindications/negations; group duplicates; lock benchmark subset; annotate first 50–100 questions; implement E0. | `corpus_v1` frozen after audit; all chunks have parents and offsets.         |
+| 4    | Build BM25 and BGE-M3/Qdrant; validate ID mapping, filters, context backfill, replay; implement E1/E2 and retrieval metrics.                                                                                               | Independent lexical and dense retrieval are evaluated.                         |
+| 5    | Implement deduplication/RRF and E3; tune validation Top-K/fusion; compare keyword/semantic queries and A vs A+B vs optional C retrieval.                                                                                   | Hybrid retrieval stable on validation.                                         |
+| 6    | Add reranker, E4, fixed candidate/final K, complete retrieval traces, and failure analysis.                                                                                                                                | Track-A baseline complete.                                                     |
+| 7    | Add parent context, parent clustering, adjacent merge, document quotas/budget, E5; test tables, special populations, contraindications; compare quality/latency/cost.                                                      | Track-B hierarchy complete.                                                    |
+| 8    | Define answer schema, citation numbering/replay, API cache/retry/cost tracking, citation UI, and basic conversational rewriting.                                                                                           | Clickable evidence-backed answers work.                                        |
+| 9    | Extract/verify claims, implement E6, construct unanswerable/leading validation set, calibrate refusal, implement E7.                                                                                                       | Complete A+B route refuses insufficient-evidence questions.                    |
+| 10   | Build FastAPI, Streamlit, upload/parse/index/delete/namespace isolation, streaming/errors, and Docker Compose.                                                                                                             | Full live demo is possible.                                                    |
+| 11   | Lock test/config/prompt versions; run E0–E7 and ablations; audit ≥100 answers/citations; profile latency, memory, MPS/CPU, token use, and cost.                                                                          | Reproducible result and error-analysis tables.                                 |
+| 12   | Clean repository; finalize README, deployment guide, data card, reports, demo script/cases; reproduce once on a clean machine.                                                                                             | Code, results, reports, and demo ready to submit.                              |
 
 ## 13. Team Responsibilities
 
@@ -352,18 +352,18 @@ Everyone contributes to reading, manual audits, error analysis, and the final re
 
 ## 14. Key Risks and Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Unclear corpus licence/provenance | Maintain a manifest; prioritize public authoritative materials; do not publish restricted originals. |
-| Errors recovering plain-text structure | Preserve source path/offsets, audit targeted cases, manually correct key documents. |
-| Test leakage | Strict corpus/evaluation separation and document-hash duplicate checks. |
-| RAG reduces accuracy or citations do not entail claims | Evaluate retrieval independently; rerank, expand hierarchy, verify claims, and manually audit. |
-| Excessive refusal | Calibrate on validation and report false refusals alongside coverage. |
-| API drift, cost, throttling, or outages | Log model/date/settings, cache results, resume jobs, retry with rate limiting, evaluate in batches. |
-| MPS incompatibility / insufficient Mac throughput | CPU fallback, smaller batches/lengths, on-disk batches, and A/B-only initial corpus. |
-| Server remains unavailable | Keep core workflow Mac-native; defer or sample web-scale experiments. |
-| Twelve-week scope creep | Limit v1 to 2–3 domains and prioritize E0–E7 plus trust evaluation. |
-| Sparse publishing metadata / low-authority material overwhelms evidence | Mark unknown explicitly; manually verify critical A-tier records; isolate/filter C-tier sources. |
+| Risk                                                                    | Mitigation                                                                                           |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Unclear corpus licence/provenance                                       | Maintain a manifest; prioritize public authoritative materials; do not publish restricted originals. |
+| Errors recovering plain-text structure                                  | Preserve source path/offsets, audit targeted cases, manually correct key documents.                  |
+| Test leakage                                                            | Strict corpus/evaluation separation and document-hash duplicate checks.                              |
+| RAG reduces accuracy or citations do not entail claims                  | Evaluate retrieval independently; rerank, expand hierarchy, verify claims, and manually audit.       |
+| Excessive refusal                                                       | Calibrate on validation and report false refusals alongside coverage.                                |
+| API drift, cost, throttling, or outages                                 | Log model/date/settings, cache results, resume jobs, retry with rate limiting, evaluate in batches.  |
+| MPS incompatibility / insufficient Mac throughput                       | CPU fallback, smaller batches/lengths, on-disk batches, and A/B-only initial corpus.                 |
+| Server remains unavailable                                              | Keep core workflow Mac-native; defer or sample web-scale experiments.                                |
+| Twelve-week scope creep                                                 | Limit v1 to 2–3 domains and prioritize E0–E7 plus trust evaluation.                                |
+| Sparse publishing metadata / low-authority material overwhelms evidence | Mark unknown explicitly; manually verify critical A-tier records; isolate/filter C-tier sources.     |
 
 ## 15. Deliverables and Definition of Done
 

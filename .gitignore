@@ -9,6 +9,8 @@ data/
 datasets/
 indexes/
 models/
+source-data-processed-data.zip
+*.baiduyun.uploading.cfg
 logs/
 *.faiss
 *.sqlite
@@ -17,6 +19,12 @@ logs/
 deepseek_apikey.txt
 .venv/
 __pycache__/
+
+# Local distribution archives and Baidu Netdisk upload state
+Archive.zip
+source-data-processed-data.zip
+*.baiduyun.uploading.cfg
+source-data:processed-data/
 
 # Common large model/checkpoint formats
 *.ckpt
