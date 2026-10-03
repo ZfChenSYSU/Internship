@@ -31,21 +31,21 @@
 目前已经完成离线语料、双路索引、混合检索、真实模型端到端验收和本地 Web 原型。下一阶段
 进入检索集标注、参数校准、E1–E5 评测、引用核验和拒答开发。
 
-| 模块 | 状态 | 当前结果 |
-|---|:---:|---|
-| 数据范围与权威分级 | ✅ | A 级指南/共识与 B 级教材进入 `corpus_v1`；网页、Wiki、EMR 排除 |
-| Manifest 与来源追踪 | ✅ | 6,881 份文档均保存路径、哈希、类别和纳入决定 |
-| 来源感知父子分片 | ✅ | 28,754 个父节点、47,039 个子片段 |
-| 分片质量检查 | ✅ | 原文回放错误 0、孤儿节点 0、处理失败文件 0 |
-| BM25 索引 | ✅ | SQLite FTS5-BM25，46,516 条可检索证据 |
-| Dense 索引 | ✅ | BGE-M3 + MPS + Qdrant，46,516 个 1024 维向量 |
-| 双索引一致性验收 | ✅ | 缺失、额外点、错误 ID 和错误 payload 均为 0 |
-| BM25 + Dense + RRF | ✅ | 统一命中结构、RRF k=60、单路降级与阶段追踪已实现 |
-| BGE reranker 与父节点补全 | ✅ | 真实模型 MPS 端到端通过；待校准 Top-K 与上下文预算 |
-| DeepSeek 生成 | ✅ | Flash、自然语言流式输出、10,000 max tokens、Reasoning 可选 |
-| 本地 Web 演示 | ✅ | 单页输入、流式回答、思考面板和引用证据列表 |
-| 引用核验与校准拒答 | ⏳ | 尚未完成 |
-| FastAPI、正式部署与完整评测 | ⏳ | 尚未开始 |
+| 模块                        | 状态 | 当前结果                                                        |
+| --------------------------- | :--: | --------------------------------------------------------------- |
+| 数据范围与权威分级          |  ✅  | A 级指南/共识与 B 级教材进入`corpus_v1`；网页、Wiki、EMR 排除 |
+| Manifest 与来源追踪         |  ✅  | 6,881 份文档均保存路径、哈希、类别和纳入决定                    |
+| 来源感知父子分片            |  ✅  | 28,754 个父节点、47,039 个子片段                                |
+| 分片质量检查                |  ✅  | 原文回放错误 0、孤儿节点 0、处理失败文件 0                      |
+| BM25 索引                   |  ✅  | SQLite FTS5-BM25，46,516 条可检索证据                           |
+| Dense 索引                  |  ✅  | BGE-M3 + MPS + Qdrant，46,516 个 1024 维向量                    |
+| 双索引一致性验收            |  ✅  | 缺失、额外点、错误 ID 和错误 payload 均为 0                     |
+| BM25 + Dense + RRF          |  ✅  | 统一命中结构、RRF k=60、单路降级与阶段追踪已实现                |
+| BGE reranker 与父节点补全   |  ✅  | 真实模型 MPS 端到端通过；待校准 Top-K 与上下文预算              |
+| DeepSeek 生成               |  ✅  | Flash、自然语言流式输出、10,000 max tokens、Reasoning 可选      |
+| 本地 Web 演示               |  ✅  | 单页输入、流式回答、思考面板和引用证据列表                      |
+| 引用核验与校准拒答          |  ⏳  | 尚未完成                                                        |
+| FastAPI、正式部署与完整评测 |  ⏳  | 尚未开始                                                        |
 
 正式 Qdrant 集合为 `corpus_v1_children`。Dense 冒烟查询“颅脑创伤后脑积水如何诊断？”
 成功召回 A 级专家共识的“概述”和“诊断标准”。Dense 单路仍会召回治疗段落和作者信息，
@@ -53,17 +53,17 @@
 
 ## 当前资产
 
-| 路径 | 内容 |
-|---|---|
-| `data/manifests/corpus_scope.json` | 全来源纳入/排除策略和目录规模 |
-| `data/manifests/corpus_v1.jsonl` | A/B 文档 manifest、哈希和编码 |
-| `data/processed/corpus_v1/documents.jsonl` | 文档级元数据 |
-| `data/processed/corpus_v1/parents.jsonl` | 父节点原文和子节点列表 |
-| `data/processed/corpus_v1/chunks.jsonl` | 子片段、偏移、质量标记和检索文本 |
-| `data/processed/corpus_v1/quality_report.json` | 分片自动验收结果 |
-| `data/indexes/corpus_v1/bm25.sqlite3` | BM25、父节点和引用原文 |
-| `data/indexes/corpus_v1/qdrant/` | 正式稠密向量集合 |
-| `models/huggingface/` | BGE-M3 与 BGE reranker 本地缓存 |
+| 路径                                             | 内容                             |
+| ------------------------------------------------ | -------------------------------- |
+| `data/manifests/corpus_scope.json`             | 全来源纳入/排除策略和目录规模    |
+| `data/manifests/corpus_v1.jsonl`               | A/B 文档 manifest、哈希和编码    |
+| `data/processed/corpus_v1/documents.jsonl`     | 文档级元数据                     |
+| `data/processed/corpus_v1/parents.jsonl`       | 父节点原文和子节点列表           |
+| `data/processed/corpus_v1/chunks.jsonl`        | 子片段、偏移、质量标记和检索文本 |
+| `data/processed/corpus_v1/quality_report.json` | 分片自动验收结果                 |
+| `data/indexes/corpus_v1/bm25.sqlite3`          | BM25、父节点和引用原文           |
+| `data/indexes/corpus_v1/qdrant/`               | 正式稠密向量集合                 |
+| `models/huggingface/`                          | BGE-M3 与 BGE reranker 本地缓存  |
 
 生成物、语料、索引、模型和日志均由 `.gitignore` 排除。对外发布时由维护者通过经过版权与
 隐私复核的百度网盘包分发，并记录版本、文件哈希和许可信息。
@@ -98,9 +98,9 @@ degraded = false
 
 DeepSeek Web 冒烟：
 
-| 模式 | 结果 |
-|---|---|
-| Reasoning 关闭 | 4 条证据、0 字思考内容、1,334 字回答，约 10.1 秒 |
+| 模式           | 结果                                                 |
+| -------------- | ---------------------------------------------------- |
+| Reasoning 关闭 | 4 条证据、0 字思考内容、1,334 字回答，约 10.1 秒     |
 | Reasoning 开启 | 4 条证据、4,023 字思考内容、1,295 字回答，约 20.6 秒 |
 
 上述耗时只是一轮本机冒烟值，不作为正式性能结论。

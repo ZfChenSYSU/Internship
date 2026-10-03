@@ -78,9 +78,9 @@ python -m pip install -e '.[dense,dev]'
 
 本项目使用以下 Hugging Face 模型：
 
-| 用途 | 模型 | Hugging Face |
-|---|---|---|
-| 稠密检索 | `BAAI/bge-m3` | [模型主页](https://huggingface.co/BAAI/bge-m3) |
+| 用途         | 模型                        | Hugging Face                                              |
+| ------------ | --------------------------- | --------------------------------------------------------- |
+| 稠密检索     | `BAAI/bge-m3`             | [模型主页](https://huggingface.co/BAAI/bge-m3)             |
 | 交叉编码重排 | `BAAI/bge-reranker-v2-m3` | [模型主页](https://huggingface.co/BAAI/bge-reranker-v2-m3) |
 
 模型默认从项目内的 `models/huggingface/` 读取。下面的命令排除了当前 PyTorch/MPS 流程不需要
@@ -121,13 +121,13 @@ chmod 600 deepseek_apikey.txt
 该文件已被 `.gitignore` 排除。后端只在本地读取 key，不会把 key 发送到浏览器。当前 Web
 配置使用：
 
-| 参数 | 值 |
-|---|---|
-| Model | `deepseek-flash` |
-| Temperature | `0` |
-| Max output tokens | `10000` |
-| Thinking | 页面开关控制 `thinking.type=enabled/disabled` |
-| Streaming | 开启 |
+| 参数              | 值                                             |
+| ----------------- | ---------------------------------------------- |
+| Model             | `deepseek-flash`                             |
+| Temperature       | `0`                                          |
+| Max output tokens | `10000`                                      |
+| Thinking          | 页面开关控制`thinking.type=enabled/disabled` |
+| Streaming         | 开启                                           |
 
 DeepSeek 接口参数可参考[官方 Chat Completion 文档](https://api-docs.deepseek.com/api/create-chat-completion)。
 
@@ -136,12 +136,14 @@ DeepSeek 接口参数可参考[官方 Chat Completion 文档](https://api-docs.d
 原始医疗语料、处理结果和索引体积较大，因此不直接提交到 Git。项目维护者通过百度网盘提供
 `corpus_v1` 整理包，压缩包内包含 `data/` 和 `Medical Corpus/` 两个文件夹：
 
-通过网盘分享的文件：source-data-processed-data.zip 链接: [https://pan.baidu.com/s/1mMEtNMcf8-vDq9qjivYojw?pwd=hyar](https://pan.baidu.com/s/1mMEtNMcf8-vDq9qjivYojw?pwd=hyar) 提取码: hyar
+通过网盘分享的文件：Archive.zip
+链接: https://pan.baidu.com/s/1dzUgVmlOBVpcw0NMUyT_rA?pwd=d7xk 提取码: d7xk
 
 下载后解压到项目根目录，至少应得到：
 
 ```text
-Medical Corpus/                         # 仅在需要重建时使用
+Medical Corpus/   # 仅在需要重建时使用
+
 data/
 ├── manifests/
 │   ├── corpus_scope.json
